@@ -34,7 +34,7 @@ st.set_page_config(
     page_title=APP_NAME,
     page_icon="📈",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 st.markdown("""
 <style>
@@ -123,14 +123,26 @@ SECTOR_DATA_PATH = Path(__file__).parent / "data" / "sector_index.csv"
 with st.sidebar:
     st.header("NẠP DỮ LIỆU")
     st.caption("Nhập thủ công · Không kết nối nguồn tự động · Một kho dữ liệu chuẩn")
-    input_mode = st.radio("Cách nhập", ["Tải nhiều CSV / Excel", "Dán bảng dữ liệu"], key="data_input_mode")
+    input_mode = st.radio(
+        "Cách nhập",
+        ["Tải nhiều CSV / Excel", "Dán bảng dữ liệu"],
+        key="data_input_mode",
+        horizontal=False,
+    )
     market_uploads = []
     pasted_text = ""
-    if input_mode == "Tải CSV / Excel":
+    if input_mode == "Tải nhiều CSV / Excel":
+        st.markdown("**CẬP NHẬT DỮ LIỆU OHLCV**")
+        st.caption("Chọn file dữ liệu cổ phiếu và VNINDEX; có thể tải nhiều file cùng lúc.")
         market_uploads = st.file_uploader(
-            "Dữ liệu OHLCV", type=["csv", "xlsx", "xls", "txt"],
-            accept_multiple_files=True, key="market_history_uploads",
-            help="Mỗi file cần có ngày, mã, mở, cao, thấp, đóng cửa, khối lượng. File nhiều mã cần có cột symbol."
+            "Dữ liệu OHLCV",
+            type=["csv", "xlsx", "xls", "txt"],
+            accept_multiple_files=True,
+            key="market_history_uploads",
+            help=(
+                "Mỗi file cần có ngày, mã, mở, cao, thấp, đóng cửa, khối lượng. "
+                "File nhiều mã cần có cột symbol. Có thể tải nhiều file cùng lúc."
+            ),
         )
     else:
         pasted_text = st.text_area(
@@ -172,7 +184,7 @@ with st.sidebar:
 
     if incoming is not None and not incoming.empty:
         st.caption(f"Đã đọc {len(incoming):,} dòng · {incoming.symbol.nunique()} mã · {incoming.date.min():%d/%m/%Y} – {incoming.date.max():%d/%m/%Y}")
-        if st.button("CẬP NHẬT KHO DỮ LIỆU", type="primary", use_container_width=True, key="commit_market_data"):
+        if st.button("CẬP NHẬT DỮ LIỆU VÀO KHO", type="primary", use_container_width=True, key="commit_market_data"):
             try:
                 staged, ingest_meta = prepare_market_upload(
                     incoming, price_multiplier=PRICE_UNIT_OPTIONS[price_unit]
