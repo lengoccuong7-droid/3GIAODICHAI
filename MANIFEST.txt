@@ -1,0 +1,28 @@
+BOT TRADER SWING MULTI V6.2.0
+
+Mục tiêu: ứng dụng Swing Trading 3–10 phiên với một nguồn dữ liệu chuẩn, một bộ máy tính toán trung tâm và một snapshot dùng chung cho cả 3 tab.
+
+Thay đổi chính V6.2.0:
+- Giữ đúng 3 tab: Tổng quan / Dấu chân dòng tiền / Chiến lược.
+- Sửa lỗi thiếu bước tạo swing_report trong luồng giao diện V6.1.
+- Hỗ trợ tải nhiều file OHLCV cùng lúc; chuẩn hóa, kiểm tra trùng mã/ngày trước khi cập nhật kho SQLite.
+- Bổ sung dữ liệu chỉ số ngành dạng CSV tùy chọn, lưu cục bộ và so sánh sức mạnh tương đối 20 phiên.
+- Tạo modules/unified_analytics.py làm bộ máy tính toán và suy luận thống nhất.
+- Mỗi tab đọc cùng snapshot ID; các chỉ tiêu OHLCV dùng chung một định nghĩa/công thức chuẩn.
+- Đồng bộ REL_VOLUME20 theo khối lượng hiện tại / trung bình 20 phiên đã hoàn tất trước đó.
+- Bổ sung phân tích cấu trúc tích lũy/hấp thụ/phân phối đa phiên và tích hợp vào quyết định.
+- Bổ sung holdout ngoài mẫu 70/30; backtest dùng cùng đường suy luận trung tâm, benchmark/sector chỉ dùng dữ liệu có sẵn tại thời điểm tín hiệu.
+- Không thêm bảng chỉ báo dư thừa, không tự lấy dữ liệu và không đặt lệnh.
+
+Kiểm thử phát hành:
+- 75/75 pytest đạt.
+- compileall app.py, config.py, modules, tests đạt.
+- Smoke test bằng dữ liệu demo tổng hợp tạo được snapshot, báo cáo Swing, flow/trap và cấu trúc.
+
+Giới hạn:
+- Môi trường đóng gói không có Streamlit nên chưa chạy giao diện tương tác thực tế ở đây.
+- Chưa có xác nhận hiệu quả bằng bộ dữ liệu thị trường thật độc lập đã kiểm toán.
+- Tích lũy/hấp thụ/phân phối và dòng tiền OHLCV chỉ là proxy, không chứng minh tổ chức đang gom/xả.
+- Kết quả holdout ít lệnh đóng không đủ ý nghĩa thống kê; dữ liệu demo không dùng để đánh giá hiệu suất.
+
+Đọc README.md để xem hướng dẫn cài đặt, cấu trúc file đầu vào và giới hạn mô hình.
