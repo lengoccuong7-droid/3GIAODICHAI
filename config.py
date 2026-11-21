@@ -12,7 +12,7 @@ INDICATOR_PERIODS = {
     "MFI": 14,
     "BB": 20,
 }
-APP_VERSION = "6.2.0"
+APP_VERSION = "6.3.0"
 PRICE_UNIT_OPTIONS = {"Đồng/cổ phiếu": 1.0, "Nghìn đồng/cổ phiếu": 1000.0}
 DEFAULT_PRICE_UNIT = "Đồng/cổ phiếu"
 DEFAULT_TAX_PCT = 0.1
