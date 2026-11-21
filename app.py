@@ -11,6 +11,7 @@ from modules.data_loader import load_market_file
 from modules.data_store import upsert_market_data, load_market_history, market_history_summary
 from modules.data_ingestion import prepare_market_upload
 from modules.support_resistance import find_support_resistance
+from modules.trading_assistant import build_trading_assistant
 from modules.data_quality import assess_data_quality
 from modules.backtest import simple_swing_backtest
 from modules.risk_manager import calculate_position_size
@@ -337,7 +338,7 @@ def _safe_num(value):
 
 st.markdown("### Phân tích tập trung · 3 tab")
 st.caption("Một bộ dữ liệu chuẩn · Một bộ máy tính toán · Một snapshot dùng chung cho cả 3 tab. Chỉ dùng dữ liệu đã nạp; không tự tạo dữ liệu thị trường.")
-main_tabs = st.tabs(["1 · TỔNG QUAN", "2 · DẤU CHÂN DÒNG TIỀN", "3 · CHIẾN LƯỢC"])
+main_tabs = st.tabs(["1 · TỔNG QUAN", "2 · DẤU CHÂN DÒNG TIỀN", "3 · TRỢ LÝ TRADING"])
 
 # TAB 1 — OVERVIEW
 with main_tabs[0]:
@@ -465,7 +466,43 @@ with main_tabs[2]:
     elif swing_report is None:
         st.warning("Chưa đủ điều kiện tạo chiến lược.")
     else:
-        st.markdown("#### Kết luận hành động")
+        st.markdown("#### TRỢ LÝ TRADING · CÁC KỊCH BẢN MÔ PHỎNG")
+        st.caption("Trợ lý trình bày vùng hỗ trợ/kháng cự và hai kịch bản T+ hoặc breakout. Các mức được tính từ cùng snapshot OHLCV; chỉ là tham chiếu học tập/mô phỏng, không tự đặt lệnh.")
+        assistant = build_trading_assistant(raw)
+        if not assistant.get("ready"):
+            st.warning(assistant.get("message", "Chưa đủ dữ liệu để xây dựng kịch bản."))
+        else:
+            lv1, lv2, lv3, lv4 = st.columns(4)
+            lv1.metric("GIÁ ĐÓNG CỬA", fmt(assistant.get("close"), 0) + " đ")
+            lv2.metric("HỖ TRỢ GẦN", fmt(assistant.get("support"), 0) + " đ")
+            lv3.metric("KHÁNG CỰ GẦN", fmt(assistant.get("resistance"), 0) + " đ")
+            lv4.metric("ATR 14", fmt(assistant.get("atr14"), 0) + " đ")
+            st.caption(f"Số lần chạm vùng: hỗ trợ {assistant.get('support_touches', 0)} · kháng cự {assistant.get('resistance_touches', 0)} · Khối lượng phiên cuối / VMA20: {fmt(assistant.get('volume_ratio'), 2)} lần")
+            st.markdown("### Kịch bản 1 · Giao dịch ngắn hạn T+ (mô phỏng)")
+            tplus = assistant.get("tplus", {})
+            st.info(f"**Trạng thái:** {tplus.get('status', 'CHƯA RÕ')} — {tplus.get('reason', '')}")
+            t1, t2, t3, t4 = st.columns(4)
+            t1.metric("VÙNG THEO DÕI", f"{fmt(tplus.get('entry_low'), 0)} – {fmt(tplus.get('entry_high'), 0)} đ")
+            t2.metric("ĐIỀU KIỆN KÍCH HOẠT", fmt(tplus.get('trigger'), 0) + " đ")
+            t3.metric("STOP THAM CHIẾU", fmt(tplus.get('stop'), 0) + " đ")
+            t4.metric("MỤC TIÊU 1 / 2", f"{fmt(tplus.get('target_1'), 0)} / {fmt(tplus.get('target_2'), 0)} đ")
+            for condition in tplus.get("conditions", []): st.write("• " + str(condition))
+            st.markdown("### Kịch bản 2 · Chờ xác nhận breakout")
+            breakout = assistant.get("breakout", {})
+            st.info(f"**Trạng thái:** {breakout.get('status', 'CHƯA RÕ')} — {breakout.get('reason', '')}")
+            b1, b2, b3, b4 = st.columns(4)
+            b1.metric("GIÁ CẦN VƯỢT", fmt(breakout.get('trigger'), 0) + " đ")
+            b2.metric("KHỐI LƯỢNG XÁC NHẬN", fmt(breakout.get('volume_required'), 0) + " cp")
+            b3.metric("STOP THAM CHIẾU", fmt(breakout.get('stop'), 0) + " đ")
+            b4.metric("MỤC TIÊU 1 / 2", f"{fmt(breakout.get('target_1'), 0)} / {fmt(breakout.get('target_2'), 0)} đ")
+            for condition in breakout.get("conditions", []): st.write("• " + str(condition))
+            with st.expander("Phương pháp xác định hỗ trợ, kháng cự và điểm vô hiệu"):
+                st.write(assistant.get("method", "Pivot High/Low"))
+                st.write("Hỗ trợ/kháng cự lấy từ pivot high/low trong tối đa 60 phiên, gom cụm theo sai số 1,2%. Stop tham chiếu dùng khoảng đệm 0,5 ATR; breakout cần đóng cửa vượt vùng và khối lượng tối thiểu 1,3 lần bình quân 20 phiên.")
+                st.warning(assistant.get("warning", "Các mức chỉ là tham chiếu mô phỏng."))
+
+        st.divider()
+        st.markdown("#### Chi tiết chiến lược và quản trị vị thế")
         st.subheader(swing_report.get("conclusion", swing_report.get("decision", "CHƯA ĐỦ DỮ LIỆU")))
         st.caption("Kế hoạch tham chiếu theo quy tắc; không tự đặt lệnh. Nếu dữ liệu thiếu hoặc có điều kiện chặn, ưu tiên đứng ngoài/chờ xác nhận.")
         pos = swing_report.get("position", {})
@@ -566,4 +603,4 @@ with main_tabs[2]:
                     st.info("Đây là holdout ngoài mẫu với quy tắc cố định và tín hiệu tính tại từng thời điểm; chưa phải bằng chứng hiệu quả tương lai. Không tối ưu tham số trên chính tập kiểm định này.")
 
 st.divider()
-st.caption("V6.2.0 · 3 tab: Tổng quan / Dấu chân dòng tiền / Chiến lược · Khung Swing 3–10 phiên. Dữ liệu khối ngoại, tự doanh và lệnh lớn chỉ được dùng khi người dùng cung cấp file có nguồn; OHLCV là proxy, không xác định danh tính tổ chức. Bộ quy tắc cần kiểm định ngoài mẫu trên dữ liệu thật trước khi đánh giá hiệu quả.")
+st.caption("V6.3.0 · 3 tab: Tổng quan / Dấu chân dòng tiền / Trợ lý Trading · Khung Swing 3–10 phiên. Dữ liệu khối ngoại, tự doanh và lệnh lớn chỉ được dùng khi người dùng cung cấp file có nguồn; OHLCV là proxy, không xác định danh tính tổ chức. Bộ quy tắc cần kiểm định ngoài mẫu trên dữ liệu thật trước khi đánh giá hiệu quả.")
